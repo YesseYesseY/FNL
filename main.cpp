@@ -1,7 +1,7 @@
 #include <print>
 #include <Windows.h>
 
-#define LAUNCH_ARGS (char*)("-skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN=Yes -AUTH_PASSWORD=s -AUTH_TYPE=epic")
+#define LAUNCH_ARGS (char*)(" -nosplash -skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN=Yes -AUTH_PASSWORD=s -AUTH_TYPE=epic")
 
 PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationFlags = CREATE_SUSPENDED)
 {
@@ -30,6 +30,8 @@ PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationF
 
 void InjectDll(PROCESS_INFORMATION pi, char* DllPath)
 {
+    if (DllPath[0] == '\x00')
+        return;
     auto a1 = GetModuleHandleA("kernel32.dll");
     auto a2 = GetProcAddress(a1, "LoadLibraryA");
     auto a3 = VirtualAllocEx(pi.hProcess, NULL, strlen(DllPath) + 1, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -38,7 +40,7 @@ void InjectDll(PROCESS_INFORMATION pi, char* DllPath)
     CloseHandle(a5);
 }
 
-void StartFN(const std::string& Path, char* DllPath)
+void StartFN(const std::string& Path, char* DllPath, char* DllPath2)
 {
     SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_EAC.exe");
     SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_BE.exe");
@@ -46,6 +48,8 @@ void StartFN(const std::string& Path, char* DllPath)
     auto pi = SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe", 0);
 
     InjectDll(pi, DllPath);
+    Sleep(1000 * 20);
+    InjectDll(pi, DllPath2);
 
     WaitForSingleObject(pi.hProcess, INFINITE);
 
@@ -62,7 +66,7 @@ int main(int argc, char** argv)
 
     std::println("Path: {}", Path);
 
-    StartFN(Path, argv[2]);
+    StartFN(Path, argv[2], argv[3]);
 
     return 0;
 }
