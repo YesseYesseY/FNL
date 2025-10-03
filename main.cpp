@@ -1,8 +1,11 @@
 #include <print>
 #include <Windows.h>
 #include <stdlib.h>
+#include <format>
 
-#define LAUNCH_ARGS (char*)(" -nosplash -skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN=Yes -AUTH_PASSWORD=s -AUTH_TYPE=epic")
+#define LAUNCH_ARGS " -nosplash -skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN={} -AUTH_PASSWORD=s -AUTH_TYPE=epic"
+
+char* Username = (char*)("Yes");
 
 PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationFlags = CREATE_SUSPENDED)
 {
@@ -13,9 +16,12 @@ PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationF
     si.cb = sizeof(si);
     ZeroMemory( &pi, sizeof(pi) );
 
+    // By the time this is called all necessary args should've been parsed so it can be static
+    static std::string ArgsToUse = std::format(LAUNCH_ARGS, Username);
+
     CreateProcessA(
             Path.c_str(), // lpApplicationName
-            LAUNCH_ARGS, // lpCommandLine
+            (char*)ArgsToUse.c_str(), // lpCommandLine
             NULL, // lpProcessAttributes
             NULL, // lpThreadAttributes
             FALSE, // bInheritHandles
@@ -43,9 +49,9 @@ void InjectDll(PROCESS_INFORMATION pi, char* DllPath)
 
 int main(int argc, char** argv)
 {
-    if (argc <= 2)
+    if (argc <= 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-help") == 0)
     {
-        std::println("Usage: {} [PathToFolderThatIncludesFortniteGame] (Actions)\nActions:\n    -wNumberToWait // Wait for x milliseconds\n    -iPathToDll // Inject dll", argv[0]);
+        std::println("Usage: {} [PathToFolderThatIncludesFortniteGame] (Actions)\nActions:\n    -wNumberToWait // Wait for x milliseconds\n    -iPathToDll // Inject dll\n    -uUsername // Change the username", argv[0]);
         return 1;
     }
 
@@ -54,6 +60,23 @@ int main(int argc, char** argv)
     if (!Path.ends_with('/') || !Path.ends_with('\\'))
         Path += '/';
 
+    // TODO Combine the 2 arg loops
+    for (int i = 2; i < argc; i++)
+    {
+        switch (argv[i][1])
+        {
+            case 'u':
+            {
+                Username = &argv[i][2];
+                break;
+            }
+            default:
+            {
+                std::println("Unknown Action: {}", argv[i]);
+                break;
+            }
+        }
+    }
     SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_EAC.exe");
     SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_BE.exe");
     SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteLauncher.exe");
