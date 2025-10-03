@@ -1,5 +1,6 @@
 #include <print>
 #include <Windows.h>
+#include <stdlib.h>
 
 #define LAUNCH_ARGS (char*)(" -nosplash -skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN=Yes -AUTH_PASSWORD=s -AUTH_TYPE=epic")
 
@@ -40,33 +41,53 @@ void InjectDll(PROCESS_INFORMATION pi, char* DllPath)
     CloseHandle(a5);
 }
 
-void StartFN(const std::string& Path, char* DllPath, char* DllPath2)
-{
-    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_EAC.exe");
-    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_BE.exe");
-    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteLauncher.exe");
-    auto pi = SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe", 0);
-
-    InjectDll(pi, DllPath);
-    Sleep(1000 * 20);
-    InjectDll(pi, DllPath2);
-
-    WaitForSingleObject(pi.hProcess, INFINITE);
-
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-}
-
 int main(int argc, char** argv)
 {
+    if (argc <= 2)
+    {
+        std::println("Usage: {} [PathToFolderThatIncludesFortniteGame] (Actions)\nActions:\n    -wNumberToWait // Wait for x milliseconds\n    -iPathToDll // Inject dll", argv[0]);
+        return 1;
+    }
+
     std::string Path = std::string(argv[1]);
 
     if (!Path.ends_with('/') || !Path.ends_with('\\'))
         Path += '/';
 
-    std::println("Path: {}", Path);
+    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_EAC.exe");
+    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_BE.exe");
+    SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteLauncher.exe");
+    auto pi = SimpleCreateProcess(Path + "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe", 0);
 
-    StartFN(Path, argv[2], argv[3]);
+    for (int i = 2; i < argc; i++)
+    {
+        switch (argv[i][1])
+        {
+            case 'w':
+            {
+                int WaitNum = atoi(&argv[i][2]);
+                Sleep(WaitNum);
+                break;
+            }
+            case 'i':
+            {
+                char* DllPath = &argv[i][2];
+                std::println("Injecting {}", DllPath);
+                InjectDll(pi, DllPath);
+                break;
+            }
+            default:
+            {
+                std::println("Unknown Action: {}", argv[i]);
+                break;
+            }
+        }
+    }
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 
     return 0;
 }
