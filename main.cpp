@@ -6,6 +6,7 @@
 #define LAUNCH_ARGS " -nosplash -skippatchcheck -epicportal -log -epicapp=Fortnite -epicenv=Prod -epiclocale=en-us -nobe -fromfl=eac -fltoken=7a848a93a74ba68876c36C1c -caldera=TODO.TODO.TODO -AUTH_LOGIN={} -AUTH_PASSWORD=s -AUTH_TYPE=epic"
 
 char* Username = (char*)("Yes");
+bool Headless = false;
 
 PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationFlags = CREATE_SUSPENDED)
 {
@@ -17,7 +18,7 @@ PROCESS_INFORMATION SimpleCreateProcess(const std::string& Path, DWORD CreationF
     ZeroMemory( &pi, sizeof(pi) );
 
     // By the time this is called all necessary args should've been parsed so it can be static
-    static std::string ArgsToUse = std::format(LAUNCH_ARGS, Username);
+    static std::string ArgsToUse = std::format(LAUNCH_ARGS, Username) + (Headless ? " -nullrhi -nosound" : "");
 
     CreateProcessA(
             Path.c_str(), // lpApplicationName
@@ -51,7 +52,7 @@ int main(int argc, char** argv)
 {
     if (argc <= 2 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-help") == 0)
     {
-        std::println("Usage: {} [PathToFolderThatIncludesFortniteGame] (Actions)\nActions:\n    -wNumberToWait // Wait for x milliseconds\n    -iPathToDll // Inject dll\n    -uUsername // Change the username", argv[0]);
+        std::println("Usage: {} [PathToFolderThatIncludesFortniteGame] (Actions)\nActions:\n    -wNumberToWait // Wait for x milliseconds\n    -iPathToDll // Inject dll\n    -uUsername // Change the username\n    -h // Headless mode", argv[0]);
         return 1;
     }
 
@@ -69,6 +70,10 @@ int main(int argc, char** argv)
             {
                 Username = &argv[i][2];
                 break;
+            }
+            case 'h':
+            {
+                Headless = true;
             }
             default:
             {
